@@ -58,7 +58,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "changeset publish"
+    "release": "npm run build && changeset publish"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,mts,cts}": [

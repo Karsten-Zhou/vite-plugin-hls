@@ -120,7 +120,12 @@ and GitHub Actions (`.github/workflows/release.yml`).
 ### Required GitHub / npm configuration
 
 - The repository must live on GitHub with `main` as the default branch.
-- A publishable npm token must be stored as the `NPM_TOKEN` repository secret.
-- Optional: enable npm **Trusted Publishing / OIDC** and npm **provenance** for
-  `id-token`-based publishing (see the `id-token: write` permission and
-  `NPM_CONFIG_PROVENANCE` in the workflow).
+- Publishing uses npm **Trusted Publishing / OIDC** — no `NPM_TOKEN` is needed.
+  On npmjs.com, add a trusted publisher for this package pointing at the
+  `release.yml` workflow in `Karsten-Zhou/vite-plugin-hls`. The workflow only
+  requires the `GITHUB_TOKEN` (the `id-token: write` permission is used to mint
+  the OIDC token that npm verifies).
+- npm CLI `>=11.5.1` is required (the workflow upgrades npm before publishing);
+  provenance attestations are generated automatically.
+- The `repository` field in `package.json` must case-sensitively match the
+  GitHub repository so provenance can be generated.
