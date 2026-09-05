@@ -1,5 +1,11 @@
 # @karsten_zhou/vite-plugin-hls
 
+## 1.0.1
+
+### Patch Changes
+
+- Fix ffmpeg failing with "Failed to open segment" / "No such file or directory" by ensuring the HLS output directory exists before encoding.
+
 ## 1.0.0 (2026-09-06)
 
 Initial stable release.
