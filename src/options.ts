@@ -1,13 +1,9 @@
-import ffmpegStatic from "ffmpeg-static";
-
 import type { HlsPluginOptions, ResolvedHlsOptions } from "./types";
 
 export function resolveOptions(
   input: HlsPluginOptions = {},
 ): ResolvedHlsOptions {
   const common = {
-    ffmpegPath: input.ffmpegPath ?? ffmpegStatic ?? "ffmpeg",
-
     segmentDuration: input.segmentDuration ?? 4,
 
     segmentType: input.segmentType ?? "fmp4",

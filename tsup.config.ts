@@ -7,7 +7,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "node20",
-  // vite is a peer dependency; ffmpeg-static ships platform binaries
-  // and must be resolved at runtime from node_modules.
-  external: ["vite", "ffmpeg-static"],
+  // vite is a peer dependency; node-av is a native addon that ships
+  // platform binaries and must be resolved at runtime from node_modules.
+  external: ["vite", "node-av"],
 });

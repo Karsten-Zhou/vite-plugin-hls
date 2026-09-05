@@ -8,7 +8,6 @@ import type { ResolvedHlsOptions } from "../../src/types";
 
 const options = {
   mode: "single",
-  ffmpegPath: "/opt/ffmpeg",
   segmentDuration: 4,
   segmentType: "fmp4",
   outputDir: "assets/hls",

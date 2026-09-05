@@ -1,7 +1,9 @@
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { spawn } from "node:child_process";
+
+import { Decoder, Demuxer, Encoder, FilterAPI, Muxer } from "node-av/api";
+import { FF_ENCODER_AAC, FF_ENCODER_LIBX264 } from "node-av/constants";
 
 import { bitrateToNumber } from "./bitrate";
 import type { ResolvedHlsOptions } from "./types";
@@ -11,53 +13,195 @@ interface EncodeVariantOptions {
   bitrate?: string;
 }
 
-function runFfmpeg(executable: string, args: string[]): Promise<void> {
-  return new Promise((resolvePromise, reject) => {
-    const child = spawn(executable, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+const PLAYLIST = "index.m3u8";
 
-    let stderr = "";
+type HlsOptions = {
+  hls_time: string;
+  hls_playlist_type: "vod";
+  hls_segment_filename: string;
+  hls_segment_type?: "mpegts" | "fmp4";
+  hls_fmp4_init_filename?: string;
+};
 
-    child.stderr.on("data", (data: Buffer) => {
-      stderr += data.toString();
-    });
+function hlsMuxerOptions(
+  outputDirectory: string,
+  options: ResolvedHlsOptions,
+): HlsOptions {
+  const extension = options.segmentType === "fmp4" ? "m4s" : "ts";
 
-    child.on("error", (error) => {
-      if ("code" in error && error.code === "ENOENT") {
-        reject(
-          new Error(
-            [
-              "[vite-plugin-hls] ffmpeg was not found.",
-              `Executable: ${executable}`,
-              "Set ffmpegPath or install ffmpeg.",
-            ].join("\n"),
-          ),
-        );
-        return;
-      }
+  const hls: HlsOptions = {
+    hls_time: String(options.segmentDuration),
+    hls_playlist_type: "vod",
+    hls_segment_filename: join(outputDirectory, `segment-%05d.${extension}`),
+  };
 
-      reject(error);
-    });
+  if (options.segmentType === "fmp4") {
+    hls.hls_segment_type = "fmp4";
+    hls.hls_fmp4_init_filename = "init.mp4";
+  }
 
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
+  return hls;
+}
 
-      reject(
-        new Error(
-          [
-            `[vite-plugin-hls] ffmpeg failed with exit code ${code ?? "unknown"}.`,
-            stderr.trim(),
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        ),
-      );
-    });
+/*
+ * SINGLE MODE (remux): copy the streams, only repackage into HLS.
+ */
+async function remuxToHls(
+  source: string,
+  playlist: string,
+  hls: HlsOptions,
+): Promise<void> {
+  await using input = await Demuxer.open(source);
+  await using output = await Muxer.open(playlist, {
+    format: "hls",
+    input,
+    options: hls,
   });
+
+  const routed = new Map<number, number>();
+
+  const video = input.video();
+  if (video) {
+    routed.set(video.index, output.addStream(video));
+  }
+
+  const audio = input.audio();
+  if (audio) {
+    routed.set(audio.index, output.addStream(audio));
+  }
+
+  for await (const packet of input.packets()) {
+    if (packet === null) {
+      break;
+    }
+
+    const index = routed.get(packet.streamIndex);
+
+    if (index !== undefined) {
+      await output.writePacket(packet, index);
+    }
+
+    packet.free();
+  }
+
+  await output.close();
+}
+
+/*
+ * ADAPTIVE MODE (transcode): re-encode each rendition's video (scaled,
+ * libx264) and audio (aac) into its HLS output.
+ */
+async function transcodeToHls(
+  source: string,
+  playlist: string,
+  hls: HlsOptions,
+  options: ResolvedHlsOptions,
+  variant: EncodeVariantOptions,
+): Promise<void> {
+  if (options.mode !== "adaptive") {
+    throw new Error(
+      "[vite-plugin-hls] internal: transcode requires adaptive mode",
+    );
+  }
+
+  await using input = await Demuxer.open(source);
+  await using output = await Muxer.open(playlist, {
+    format: "hls",
+    input,
+    options: hls,
+  });
+
+  const tasks: Promise<void>[] = [];
+
+  const video = input.video();
+  if (video) {
+    const decoder = await Decoder.create(video);
+
+    const scale = variant.height
+      ? `scale=-2:${variant.height}:force_original_aspect_ratio=decrease,format=yuv420p`
+      : "format=yuv420p";
+
+    const filter = FilterAPI.create(scale);
+
+    const encoderOptions: Record<string, string | number> = {
+      preset: options.preset,
+      crf: String(options.crf),
+    };
+
+    const encoderBase: Record<string, unknown> = {
+      options: encoderOptions,
+    };
+
+    if (variant.bitrate !== undefined) {
+      const bitrate = bitrateToNumber(variant.bitrate);
+
+      encoderOptions.maxrate = bitrate;
+      encoderOptions.bufsize = Math.round(bitrate * 1.5);
+      encoderBase.bitrate = bitrate;
+    }
+
+    const encoder = await Encoder.create(
+      FF_ENCODER_LIBX264,
+      encoderBase as Parameters<typeof Encoder.create>[1],
+    );
+
+    const index = output.addStream(encoder, { inputStream: video });
+
+    tasks.push(
+      (async () => {
+        try {
+          const frames = decoder.frames(input.packets(video.index));
+          const scaled = filter.frames(frames);
+
+          for await (const packet of encoder.packets(scaled)) {
+            if (packet === null) {
+              break;
+            }
+            await output.writePacket(packet, index);
+            packet.free();
+          }
+        } finally {
+          filter.close();
+          decoder.close();
+          encoder.close();
+        }
+      })(),
+    );
+  }
+
+  const audio = input.audio();
+  if (audio) {
+    const decoder = await Decoder.create(audio);
+
+    const encoder = await Encoder.create(FF_ENCODER_AAC, {
+      decoder,
+      bitrate: 128_000,
+    });
+
+    const index = output.addStream(encoder, { inputStream: audio });
+
+    tasks.push(
+      (async () => {
+        try {
+          const frames = decoder.frames(input.packets(audio.index));
+
+          for await (const packet of encoder.packets(frames)) {
+            if (packet === null) {
+              break;
+            }
+            await output.writePacket(packet, index);
+            packet.free();
+          }
+        } finally {
+          decoder.close();
+          encoder.close();
+        }
+      })(),
+    );
+  }
+
+  await Promise.all(tasks);
+  await output.close();
 }
 
 export async function encodeVariant(
@@ -66,120 +210,20 @@ export async function encodeVariant(
   options: ResolvedHlsOptions,
   variant: EncodeVariantOptions = {},
 ): Promise<void> {
-  const extension = options.segmentType === "fmp4" ? "m4s" : "ts";
-
-  const playlist = join(outputDirectory, "index.m3u8");
-
-  const args: string[] = [
-    "-y",
-    "-i",
-    source,
-
-    "-map",
-    "0:v:0",
-    "-map",
-    "0:a:0?",
-  ];
-
-  /*
-   * SINGLE MODE:
-   *
-   * Do not encode the streams again.
-   * FFmpeg only remuxes/segments them into HLS.
-   */
-  if (options.mode === "single") {
-    args.push(
-      "-c:v",
-      "copy",
-
-      "-c:a",
-      "copy",
-    );
-  } else {
-    /*
-     * ADAPTIVE MODE:
-     *
-     * Each rendition needs to be encoded because
-     * resolution and bitrate are changed.
-     */
-    args.push(
-      "-c:v",
-      "libx264",
-
-      "-preset",
-      options.preset,
-
-      "-crf",
-      String(options.crf),
-
-      "-pix_fmt",
-      "yuv420p",
-
-      "-c:a",
-      "aac",
-
-      "-b:a",
-      "128k",
-    );
-
-    if (variant.height !== undefined) {
-      args.push(
-        "-vf",
-        `scale=-2:${variant.height}:force_original_aspect_ratio=decrease`,
-      );
-    }
-
-    if (variant.bitrate !== undefined) {
-      const bitrate = bitrateToNumber(variant.bitrate);
-
-      args.push(
-        "-b:v",
-        variant.bitrate,
-
-        "-maxrate",
-        variant.bitrate,
-
-        "-bufsize",
-        String(Math.round(bitrate * 1.5)),
-      );
-    }
-  }
-
-  args.push(
-    "-f",
-    "hls",
-
-    "-hls_time",
-    String(options.segmentDuration),
-
-    "-hls_playlist_type",
-    "vod",
-
-    "-hls_segment_filename",
-    join(outputDirectory, `segment-%05d.${extension}`),
-  );
-
-  if (options.segmentType === "fmp4") {
-    args.push(
-      "-hls_segment_type",
-      "fmp4",
-
-      "-hls_fmp4_init_filename",
-      "init.mp4",
-    );
-  }
-
-  args.push(playlist);
+  const hls = hlsMuxerOptions(outputDirectory, options);
+  const playlist = join(outputDirectory, PLAYLIST);
 
   /*
    * FFmpeg's HLS muxer does not create the output directory.
    * Ensure it exists so segments/playlist can be written.
    */
-  await mkdir(outputDirectory, {
-    recursive: true,
-  });
+  await mkdir(outputDirectory, { recursive: true });
 
-  await runFfmpeg(options.ffmpegPath, args);
+  if (options.mode === "single") {
+    await remuxToHls(source, playlist, hls);
+  } else {
+    await transcodeToHls(source, playlist, hls, options, variant);
+  }
 }
 
 export async function createEncodeDirectory(): Promise<string> {

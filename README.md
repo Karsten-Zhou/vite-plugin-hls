@@ -22,15 +22,9 @@ npm install -D @karsten_zhou/vite-plugin-hls
 ```
 
 [`vite`](https://vitejs.dev) is a **peer dependency**; install it if it is not
-already present in your project. FFmpeg is bundled automatically via
-`ffmpeg-static` (falling back to a system `ffmpeg` on `PATH` if unavailable).
-
-## Requirements
-
-- Node.js `>=24.3`
-- Vite `^8` (peer)
-- The build runs `ffmpeg`; `ffmpeg-static` downloads a platform binary on
-  install.
+already present in your project. Encoding is powered by
+[`node-av`](https://github.com/seydx/node-av), which downloads and manages a
+platform-specific native FFmpeg build on install.
 
 ## Usage
 
@@ -75,16 +69,15 @@ The plugin also exports `hlsVideos` as the default export, so
 
 ## Options
 
-| Option            | Type                     | Default         | Description                                                       |
-| ----------------- | ------------------------ | --------------- | ----------------------------------------------------------------- |
-| `mode`            | `"single" \| "adaptive"` | `"single"`      | `"single"` remuxes the source; `"adaptive"` encodes renditions.   |
-| `variants`        | `HlsVariant[]`           | —               | Required in `adaptive` mode: `{ height, bitrate }` per rendition. |
-| `ffmpegPath`      | `string`                 | `ffmpeg-static` | Explicit ffmpeg executable.                                       |
-| `segmentDuration` | `number`                 | `4`             | HLS segment duration in seconds.                                  |
-| `segmentType`     | `"fmp4" \| "mpegts"`     | `"fmp4"`        | HLS segment container format.                                     |
-| `outputDir`       | `string`                 | `"assets/hls"`  | Directory (inside the Vite output) where HLS assets are written.  |
-| `preset`          | `string`                 | `"medium"`      | FFmpeg `-preset` used in adaptive mode.                           |
-| `crf`             | `number`                 | `23`            | H.264 CRF used in adaptive mode.                                  |
+| Option            | Type                     | Default        | Description                                                       |
+| ----------------- | ------------------------ | -------------- | ----------------------------------------------------------------- |
+| `mode`            | `"single" \| "adaptive"` | `"single"`     | `"single"` remuxes the source; `"adaptive"` encodes renditions.   |
+| `variants`        | `HlsVariant[]`           | —              | Required in `adaptive` mode: `{ height, bitrate }` per rendition. |
+| `segmentDuration` | `number`                 | `4`            | HLS segment duration in seconds.                                  |
+| `segmentType`     | `"fmp4" \| "mpegts"`     | `"fmp4"`       | HLS segment container format.                                     |
+| `outputDir`       | `string`                 | `"assets/hls"` | Directory (inside the Vite output) where HLS assets are written.  |
+| `preset`          | `string`                 | `"medium"`     | FFmpeg `-preset` used in adaptive mode.                           |
+| `crf`             | `number`                 | `23`           | H.264 CRF used in adaptive mode.                                  |
 
 ### Types
 

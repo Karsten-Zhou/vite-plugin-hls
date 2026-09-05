@@ -5,13 +5,6 @@ export interface HlsVariant {
 
 export interface HlsCommonOptions {
   /**
-   * Explicit ffmpeg executable.
-   *
-   * Defaults to ffmpeg-static, then falls back to "ffmpeg".
-   */
-  ffmpegPath?: string;
-
-  /**
    * HLS segment duration in seconds.
    *
    * @default 4
@@ -60,7 +53,6 @@ export type HlsPluginOptions =
 export type ResolvedHlsOptions =
   | {
       mode: "single";
-      ffmpegPath: string;
       segmentDuration: number;
       segmentType: "fmp4" | "mpegts";
       outputDir: string;
@@ -70,7 +62,6 @@ export type ResolvedHlsOptions =
   | {
       mode: "adaptive";
       variants: HlsVariant[];
-      ffmpegPath: string;
       segmentDuration: number;
       segmentType: "fmp4" | "mpegts";
       outputDir: string;

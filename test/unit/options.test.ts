@@ -1,14 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { resolveOptions } from "../../src/options";
-
-vi.mock("ffmpeg-static", () => ({ default: "/opt/ffmpeg" }));
 
 describe("resolveOptions", () => {
   it("applies single-mode defaults", () => {
     expect(resolveOptions()).toEqual({
       mode: "single",
-      ffmpegPath: "/opt/ffmpeg",
       segmentDuration: 4,
       segmentType: "fmp4",
       outputDir: "assets/hls",
@@ -19,7 +16,6 @@ describe("resolveOptions", () => {
 
   it("keeps explicitly provided values", () => {
     const options = resolveOptions({
-      ffmpegPath: "/usr/bin/ffmpeg",
       segmentDuration: 6,
       segmentType: "mpegts",
       outputDir: "static/video",
@@ -29,7 +25,6 @@ describe("resolveOptions", () => {
 
     expect(options).toMatchObject({
       mode: "single",
-      ffmpegPath: "/usr/bin/ffmpeg",
       segmentDuration: 6,
       segmentType: "mpegts",
       outputDir: "static/video",

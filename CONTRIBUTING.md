@@ -46,7 +46,7 @@ src/            Library source
   resolve.ts    Video module resolution helpers
   playlist.ts   Slug + master playlist helpers
   bitrate.ts    Bitrate parsing
-  encoder.ts    FFmpeg encoding
+  encoder.ts    node-av encode/remux into HLS
   cache.ts      Persistent cache on disk
   hls.ts        Transcode orchestration
   assets.ts     Emitting assets + manifest URL
@@ -62,8 +62,8 @@ export) and the types `HlsPluginOptions` / `HlsVariant`.
 ## Tests
 
 - Unit tests live in `test/unit/` and cover pure logic (options, resolution,
-  playlists, cache, error handling) plus plugin hooks with the ffmpeg layer
-  mocked.
+  playlists, cache, error handling) plus plugin hooks with the `node-av`
+  layer mocked.
 - `test/integration/vite-build.test.ts` runs a real Vite build with a canned
   encode result to verify assets are emitted end to end.
 - Tests never require a real `ffmpeg` binary and must be deterministic.
@@ -120,11 +120,6 @@ and GitHub Actions (`.github/workflows/release.yml`).
 ### Required GitHub / npm configuration
 
 - The repository must live on GitHub with `main` as the default branch.
-- Publishing uses npm **Trusted Publishing / OIDC** — no `NPM_TOKEN` is needed.
-  On npmjs.com, add a trusted publisher for this package pointing at the
-  `release.yml` workflow in `Karsten-Zhou/vite-plugin-hls`. The workflow only
-  requires the `GITHUB_TOKEN` (the `id-token: write` permission is used to mint
-  the OIDC token that npm verifies).
 - npm CLI `>=11.5.1` is required (the workflow upgrades npm before publishing);
   provenance attestations are generated automatically.
 - The `repository` field in `package.json` must case-sensitively match the
