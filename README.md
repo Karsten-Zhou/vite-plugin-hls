@@ -18,7 +18,7 @@ can feed to an HLS player such as `hls.js`.
 ## Installation
 
 ```sh
-npm install -D vite-plugin-hls
+npm install -D @karsten_zhou/vite-plugin-hls
 ```
 
 [`vite`](https://vitejs.dev) is a **peer dependency**; install it if it is not
@@ -39,7 +39,7 @@ Add the plugin to your Vite config:
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import { hlsVideos } from "vite-plugin-hls";
+import { hlsVideos } from "@karsten_zhou/vite-plugin-hls";
 
 export default defineConfig({
   plugins: [
@@ -71,7 +71,7 @@ if (Hls.isSupported()) {
 ```
 
 The plugin also exports `hlsVideos` as the default export, so
-`import hlsVideos from "vite-plugin-hls"` works as well.
+`import hlsVideos from "@karsten_zhou/vite-plugin-hls"` works as well.
 
 ## Options
 
@@ -89,7 +89,10 @@ The plugin also exports `hlsVideos` as the default export, so
 ### Types
 
 ```ts
-import type { HlsPluginOptions, HlsVariant } from "vite-plugin-hls";
+import type {
+  HlsPluginOptions,
+  HlsVariant,
+} from "@karsten_zhou/vite-plugin-hls";
 ```
 
 ### Supported video extensions
