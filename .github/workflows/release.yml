@@ -38,12 +38,14 @@ jobs:
         run: npm ci
 
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@v1
+        # @v2 is required to work with @changesets/cli v3.
+        uses: changesets/action@v2
         with:
-          version: npm run version-packages
-          publish: npm run release
-          commit: "chore: version packages"
-          title: "chore: version packages"
+          version-script: npm run version-packages
+          publish-script: npm run release
+          commit-message: "chore: version packages"
+          pr-title: "chore: version packages"
+          # create-github-releases and push-git-tags both default to true.
         env:
           # No NPM_TOKEN: npm authenticates via OIDC (trusted publishing).
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
