@@ -4,6 +4,14 @@
   "description": "Transcode video files to HLS (HTTP Live Streaming) at Vite build time.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karsten-Zhou/vite-plugin-hls.git"
+  },
+  "homepage": "https://github.com/Karsten-Zhou/vite-plugin-hls#readme",
+  "bugs": {
+    "url": "https://github.com/Karsten-Zhou/vite-plugin-hls/issues"
+  },
   "keywords": [
     "vite",
     "vite-plugin",
