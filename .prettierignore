@@ -1,0 +1,11 @@
+# Build / dependency output
+node_modules/
+dist/
+coverage/
+
+# Docs build artifacts
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# E2E generated media
+test/e2e/.artifacts/

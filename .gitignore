@@ -30,3 +30,7 @@ Thumbs.db
 # E2E media artifacts (downloaded/generated sample inputs + encoded outputs)
 # Intentionally not tracked; cleaned up with `npm run test:e2e:clean`.
 test/e2e/.artifacts/
+
+# Docs build output and cache
+docs/.vitepress/dist/
+docs/.vitepress/cache/

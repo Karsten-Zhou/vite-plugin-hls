@@ -23,11 +23,19 @@
   "include": [
     "src",
     "test",
+    "docs/.vitepress/config.ts",
     "eslint.config.ts",
     "prettier.config.ts",
     "commitlint.config.ts",
     "tsup.config.ts",
     "vitest.config.ts",
     "vitest.e2e.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "docs/.vitepress/dist",
+    "docs/.vitepress/cache",
+    "test/e2e/.artifacts"
   ]
 }
