@@ -54,6 +54,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:e2e:clean": "node test/e2e/clean.ts",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
     "prepare": "husky",
     "changeset": "changeset",
@@ -94,5 +96,9 @@
     "typescript-eslint": "^8.69.0",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
+  },
+  "allowScripts": {
+    "node-av": true,
+    "esbuild": true
   }
 }

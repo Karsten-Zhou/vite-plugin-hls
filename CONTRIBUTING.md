@@ -66,7 +66,20 @@ export) and the types `HlsPluginOptions` / `HlsVariant`.
   layer mocked.
 - `test/integration/vite-build.test.ts` runs a real Vite build with a canned
   encode result to verify assets are emitted end to end.
-- Tests never require a real `ffmpeg` binary and must be deterministic.
+- Unit and integration tests never require a real `node-av`/ffmpeg binary and
+  must be deterministic. They run via `npm test` / `npm run check`.
+
+### E2E tests
+
+`test/e2e/` runs the **real** `node-av` encode against a real source video and
+asserts a playable HLS output. They are excluded from the default gate because
+they need the native `node-av` binary (downloads on install) and network:
+
+- Media inputs and outputs live under the git-ignored `test/e2e/.artifacts/`.
+  A known sample video is downloaded when possible; otherwise a clip is
+  generated with node-av's bundled ffmpeg. Nothing media-related is tracked.
+- Run with `npm run test:e2e`. Remove downloaded/encoded artifacts with
+  `npm run test:e2e:clean`.
 
 ## Lint / format / typecheck
 
