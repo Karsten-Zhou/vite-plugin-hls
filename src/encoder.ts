@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
@@ -170,6 +170,14 @@ export async function encodeVariant(
   }
 
   args.push(playlist);
+
+  /*
+   * FFmpeg's HLS muxer does not create the output directory.
+   * Ensure it exists so segments/playlist can be written.
+   */
+  await mkdir(outputDirectory, {
+    recursive: true,
+  });
 
   await runFfmpeg(options.ffmpegPath, args);
 }
