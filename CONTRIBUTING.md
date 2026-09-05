@@ -115,7 +115,9 @@ Keep the subject lowercase and under ~72 characters. See
 ## Release process
 
 Releases are automated with [Changesets](https://github.com/changesets/changesets)
-and GitHub Actions (`.github/workflows/release.yml`).
+in `.github/workflows/ci.yml`. The single workflow runs `test` and `e2e`, and a
+`release` job (only on `main` pushes) runs **after** both pass — so a failing
+check always blocks publishing.
 
 1. After a code change, add a changeset:
 
@@ -125,10 +127,11 @@ and GitHub Actions (`.github/workflows/release.yml`).
 
    Choose `patch`/`minor`/`major` and describe the change.
 
-2. Merge your PR. The `Release` workflow opens a **Version Packages** pull
-   request with the version bump and changelog updates.
-3. Merge that PR; the workflow then builds and publishes to npm and creates a
-   GitHub release.
+2. Merge your PR. On `main`, once `test` and `e2e` pass, the `release` job
+   opens a **Version Packages** pull request with the version bump and
+   changelog updates.
+3. Merge that PR; the `release` job then builds and publishes to npm and
+   creates a GitHub release.
 
 ### Required GitHub / npm configuration
 

@@ -1,5 +1,12 @@
 # @karsten_zhou/vite-plugin-hls
 
+## 1.1.2
+
+### Patch Changes
+
+- Ensure the fMP4 init segment is written next to the playlist on every
+  platform, so no stray `init.mp4` leaks into the project root.
+
 ## 1.1.1
 
 ### Patch Changes

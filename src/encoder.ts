@@ -1,5 +1,5 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { access, copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { Decoder, Demuxer, Encoder, FilterAPI, Muxer } from "node-av/api";
@@ -39,42 +39,41 @@ function hlsMuxerOptions(
     hls.hls_segment_type = "fmp4";
 
     /*
-     * The init filename must be absolute so the file lands next to the
-     * playlist. A relative name would be resolved against the process CWD
-     * (the project root) and leak there. The playlist is relativized after
-     * encoding (see relativizePlaylist).
+     * ffmpeg base-joins hls_fmp4_init_filename onto the HLS output dir, so an
+     * absolute path is doubled (e.g. on POSIX). Keep it relative and rely on
+     * ensureInitSegment() to place it correctly.
      */
-    hls.hls_fmp4_init_filename = join(outputDirectory, "init.mp4");
+    hls.hls_fmp4_init_filename = "init.mp4";
   }
 
   return hls;
 }
 
 /*
- * ffmpeg references an absolute init path literally in EXT-X-MAP (segment
- * URIs are already emitted as basenames). Rewrite it to a path relative to
- * the output directory so the playlist stays portable.
+ * ffmpeg writes the relative init filename into the HLS output directory on
+ * POSIX, but on some platforms (e.g. Windows) it can instead land in the
+ * process CWD. Make sure it ends up next to the playlist.
  */
-async function relativizePlaylist(
-  playlist: string,
-  outputDirectory: string,
-): Promise<void> {
-  let text: string;
+async function ensureInitSegment(outputDirectory: string): Promise<void> {
+  const target = join(outputDirectory, "init.mp4");
+
   try {
-    text = await readFile(playlist, "utf8");
+    await access(target);
+    return;
   } catch {
-    return; // nothing written (e.g. mocked in tests)
+    // fall through
   }
 
-  const prefix = outputDirectory.replace(/[\\/]+$/, "");
+  const leaked = join(process.cwd(), "init.mp4");
 
-  text = text
-    .split(prefix + "\\")
-    .join("")
-    .split(prefix + "/")
-    .join("");
+  try {
+    await access(leaked);
+  } catch {
+    return;
+  }
 
-  await writeFile(playlist, text, "utf8");
+  await copyFile(leaked, target);
+  await rm(leaked, { force: true });
 }
 
 /*
@@ -119,8 +118,6 @@ async function remuxToHls(
   }
 
   await output.close();
-
-  await relativizePlaylist(playlist, dirname(playlist));
 }
 
 /*
@@ -238,8 +235,6 @@ async function transcodeToHls(
 
   await Promise.all(tasks);
   await output.close();
-
-  await relativizePlaylist(playlist, dirname(playlist));
 }
 
 export async function encodeVariant(
@@ -261,6 +256,10 @@ export async function encodeVariant(
     await remuxToHls(source, playlist, hls);
   } else {
     await transcodeToHls(source, playlist, hls, options, variant);
+  }
+
+  if (options.segmentType === "fmp4") {
+    await ensureInitSegment(outputDirectory);
   }
 }
 
