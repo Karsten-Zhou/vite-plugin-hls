@@ -1,6 +1,6 @@
 {
   "name": "@karsten_zhou/vite-plugin-hls",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Transcode video files to HLS (HTTP Live Streaming) at Vite build time.",
   "type": "module",
   "license": "MIT",

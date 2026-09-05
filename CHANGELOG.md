@@ -1,5 +1,19 @@
 # @karsten_zhou/vite-plugin-hls
 
+## 1.1.0
+
+### Minor Changes
+
+- `node-av` integration + e2e test
+- Replace the stale `ffmpeg-static` dependency with the actively maintained
+  [`node-av`](https://github.com/seydx/node-av) native FFmpeg bindings.
+
+  - Encoding now runs FFmpeg in-process via `node-av`'s high-level API
+    (Demuxer → Decoder → Filter/Encoder → Muxer) driving the native `hls` muxer,
+    instead of spawning an `ffmpeg-static` binary.
+  - **Breaking:** the `ffmpegPath` option is removed — the platform FFmpeg build
+    is downloaded and managed by `node-av` during install.
+
 ## 1.0.1
 
 ### Patch Changes
