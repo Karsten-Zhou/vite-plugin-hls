@@ -98,8 +98,8 @@ import type {
 2. `load` transcodes the source with FFmpeg into an HLS output folder inside
    Vite's cache directory (only once per build — results are memoized).
 3. The output is emitted as static assets into `outputDir`, and the module's
-   default export is set to the resolved public URL of the playlist
-   (`import.meta.env.BASE_URL` + path), so it works under any `base`.
+   default export is set to the resolved public URL of the playlist (with
+   Vite's `base` baked in), so it works under any `base` — client or SSR.
 
 ### SSR note
 

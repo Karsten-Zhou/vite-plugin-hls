@@ -10,6 +10,14 @@ interface CacheManifest {
   manifest: string;
 }
 
+/*
+ * Bump whenever the encoder's output layout changes (e.g. a bug fix alters
+ * which files are produced). Old cache entries are keyed only on source +
+ * options and would otherwise be served forever, so the version is folded
+ * into the key to invalidate them.
+ */
+const CACHE_VERSION = "2";
+
 export async function getCacheKey(
   source: string,
   options: ResolvedHlsOptions,
@@ -17,6 +25,7 @@ export async function getCacheKey(
   const sourceData = await readFile(source);
 
   return createHash("sha256")
+    .update(CACHE_VERSION)
     .update(sourceData)
     .update(JSON.stringify(options))
     .digest("hex");

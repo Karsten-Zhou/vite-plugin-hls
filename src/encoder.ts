@@ -1,5 +1,5 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { Decoder, Demuxer, Encoder, FilterAPI, Muxer } from "node-av/api";
@@ -37,10 +37,44 @@ function hlsMuxerOptions(
 
   if (options.segmentType === "fmp4") {
     hls.hls_segment_type = "fmp4";
-    hls.hls_fmp4_init_filename = "init.mp4";
+
+    /*
+     * The init filename must be absolute so the file lands next to the
+     * playlist. A relative name would be resolved against the process CWD
+     * (the project root) and leak there. The playlist is relativized after
+     * encoding (see relativizePlaylist).
+     */
+    hls.hls_fmp4_init_filename = join(outputDirectory, "init.mp4");
   }
 
   return hls;
+}
+
+/*
+ * ffmpeg references an absolute init path literally in EXT-X-MAP (segment
+ * URIs are already emitted as basenames). Rewrite it to a path relative to
+ * the output directory so the playlist stays portable.
+ */
+async function relativizePlaylist(
+  playlist: string,
+  outputDirectory: string,
+): Promise<void> {
+  let text: string;
+  try {
+    text = await readFile(playlist, "utf8");
+  } catch {
+    return; // nothing written (e.g. mocked in tests)
+  }
+
+  const prefix = outputDirectory.replace(/[\\/]+$/, "");
+
+  text = text
+    .split(prefix + "\\")
+    .join("")
+    .split(prefix + "/")
+    .join("");
+
+  await writeFile(playlist, text, "utf8");
 }
 
 /*
@@ -85,6 +119,8 @@ async function remuxToHls(
   }
 
   await output.close();
+
+  await relativizePlaylist(playlist, dirname(playlist));
 }
 
 /*
@@ -202,6 +238,8 @@ async function transcodeToHls(
 
   await Promise.all(tasks);
   await output.close();
+
+  await relativizePlaylist(playlist, dirname(playlist));
 }
 
 export async function encodeVariant(

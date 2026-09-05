@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { build } from "vite";
 
 import { hlsVideos } from "../../src/index";
@@ -66,6 +66,9 @@ describe("vite build e2e (real node-av encode)", () => {
       root: project,
       configFile: false,
       logLevel: "silent",
+      // Isolate the plugin's persistent cache inside the throwaway project so
+      // this test is never influenced by a stale cache from other runs.
+      cacheDir: join(project, ".cache"),
       plugins: [
         hlsVideos({
           mode: "adaptive",
@@ -99,6 +102,23 @@ describe("vite build e2e (real node-av encode)", () => {
 
     const segments = await findFiles(outDir, (p) => p.endsWith(".m4s"));
     expect(segments.length).toBeGreaterThan(0);
+
+    // Every file the media playlist references (incl. the fMP4 init.mp4)
+    // must actually be emitted next to the playlist.
+    const media = manifests.find((p) => p.endsWith("/index.m3u8"));
+    expect(media).toBeDefined();
+    const mediaDir = dirname(join(outDir, media!));
+    const playlistText = await readFile(join(outDir, media!), "utf8");
+    const referenced = playlistText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(
+        (line) => line && !line.startsWith("#") && !line.startsWith("http"),
+      );
+    expect(referenced.length).toBeGreaterThan(0);
+    for (const file of referenced) {
+      expect(existsSync(join(mediaDir, file)), `missing ${file}`).toBe(true);
+    }
 
     // The JS bundle references the master playlist URL.
     const bundles = await findFiles(outDir, (p) => p.endsWith(".js"));

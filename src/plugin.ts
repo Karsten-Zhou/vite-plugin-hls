@@ -85,7 +85,7 @@ export function hlsVideos(input?: HlsPluginOptions): Plugin {
         emitHls(this, result, options);
       }
 
-      const manifest = publicManifestExpression(result, options);
+      const manifest = publicManifestExpression(result, options, config.base);
 
       return `
         export default ${manifest};

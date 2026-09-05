@@ -1,5 +1,11 @@
 # @karsten_zhou/vite-plugin-hls
 
+## 1.1.1
+
+### Patch Changes
+
+- fix output file displacement
+
 ## 1.1.0
 
 ### Minor Changes

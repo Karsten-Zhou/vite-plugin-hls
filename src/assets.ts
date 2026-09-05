@@ -37,18 +37,20 @@ export function emitHls(
 export function publicManifestExpression(
   result: CachedHls,
   options: ResolvedHlsOptions,
+  base: string,
 ): string {
   const path = `${options.outputDir}/${result.directoryName}/${result.manifest}`;
 
   /*
-   * BASE_URL is replaced by Vite in both the client
-   * and SSR builds.
+   * Bake Vite's resolved base straight into the module. Vite does not always
+   * statically replace import.meta.env.BASE_URL (e.g. in SSR bundles), where
+   * import.meta.env is undefined at runtime and crashes. Emitting the base as
+   * a plain string is equivalent and works for client and SSR alike.
    *
-   * Examples:
+   * Examples (base -> export):
    *
-   *   "/"       -> /assets/hls/...
-   *   "/notes/" -> /notes/assets/hls/...
-   *   "./"      -> ./assets/hls/...
+   *   "/"     -> "/assets/hls/..."
+   *   "/notes/" -> "/notes/assets/hls/..."
    */
-  return `import.meta.env.BASE_URL + ${JSON.stringify(path)}`;
+  return JSON.stringify(`${base}${path}`);
 }
