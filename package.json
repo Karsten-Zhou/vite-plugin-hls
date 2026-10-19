@@ -94,7 +94,7 @@
     "lint-staged": "^17.5.0",
     "prettier": "^3.9.6",
     "rolldown": "^1.2.7",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.69.0",
     "vite": "^8.2.2",
