@@ -76,7 +76,7 @@
     "access": "public"
   },
   "dependencies": {
-    "node-av": "^6.1.1"
+    "node-av": "^7.0.3"
   },
   "peerDependencies": {
     "vite": "^8.0.0"
